@@ -1,5 +1,7 @@
 (function (root) {
     'use strict';
+    // Bump with every data/wasm rebuild so browsers do not reuse old parts.
+    const BUILD_VERSION = '2ddca0945691';
     const ASSETS = {
         wasm: [16957061, 16957061, 16957061],
         data: [18471174, 18471174, 18471174, 18471174, 18471174, 18471171]
@@ -8,7 +10,8 @@
     async function mergeParts(parts, fetcher, onProgress, signal) {
         const blobs = [];
         for (const part of parts) {
-            const response = await fetcher(part.path, { signal });
+            // Versioned query busts stale browser-cached parts (a cached old part1 caused a size mismatch).
+            const response = await fetcher(part.path + '?v=' + BUILD_VERSION, { signal });
             if (!response.ok) throw new Error(part.path + ': HTTP ' + response.status);
             // Each part is bounded (~19 MB). Blobs avoid a second giant joined
             // ArrayBuffer in addition to the WASM heap (initial 128 MiB, grows on demand).

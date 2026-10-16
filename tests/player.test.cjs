@@ -10,9 +10,10 @@ test('split downloads merge in order and account for all bytes', async () => {
     const parts = [{ path: 'first', size: 3 }, { path: 'second', size: 2 }];
     const blob = await mergeParts(parts, async name => {
         requested.push(name);
-        return new Response(name === 'first' ? 'abc' : 'de');
+        return new Response(name.split('?')[0] === 'first' ? 'abc' : 'de');
     }, bytes => counts.push(bytes));
-    assert.deepEqual(requested, ['first', 'second']);
+    assert.deepEqual(requested.map(name => name.split('?')[0]), ['first', 'second']);
+    assert.ok(requested.every(name => /\?v=[0-9a-f]+$/.test(name)), 'every part request carries the build version');
     assert.deepEqual(counts, [3, 2]);
     assert.equal(await blob.text(), 'abcde');
 });
@@ -126,7 +127,8 @@ function shellFixture(options = {}) {
         navigator: { maxTouchPoints: 5 }, innerHeight: 400,
         WebAssembly, addEventListener() {}, fetch: async url => {
             if (options.downloadError) return { ok: false, status: 404 };
-            const part = [...partPaths('wasm'), ...partPaths('data')].find(part => part.path === url);
+            const part = [...partPaths('wasm'), ...partPaths('data')].find(part => part.path === url.split('?')[0]);
+            assert.match(url, /\?v=[0-9a-f]+$/, 'part URLs carry a build version');
             return { ok: true, blob: async () => ({ size: part.size }) };
         },
         MobileControls: { mount: () => { mounts++; return { reset() {} }; } },
