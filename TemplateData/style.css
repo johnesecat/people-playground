@@ -33,7 +33,7 @@ h2 { margin: 0 0 18px; }
 #extra-controls { bottom: calc(max(8px, env(safe-area-inset-bottom)) + 64px); right: max(8px, env(safe-area-inset-right)); max-height: calc(100% - 150px); overflow-y: auto; overscroll-behavior: contain; }
 #extra-controls label { display: flex; align-items: center; gap: 8px; padding-left: 8px; }
 #mobile-controls button { padding: 8px 10px; min-width: 44px; touch-action: none; }
-#mobile-controls.collapsed #action-bar, #mobile-controls.collapsed #extra-controls, #mobile-controls.collapsed [data-mode] { display: none !important; }
+#mobile-controls.collapsed #action-bar, #mobile-controls.collapsed #extra-controls { display: none !important; }
 #gesture-status { position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + 66px); right: max(12px, env(safe-area-inset-right)); pointer-events: none; color: #d7edcc; font-size: 12px; padding: 3px 8px; background: #10151dc9; border-radius: 6px; z-index: 9; }
 #gesture-status:empty { display: none; }
 #touch-cursor { position: absolute; z-index: 8; width: 20px; height: 20px; border: 2px solid var(--accent); border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); box-shadow: 0 0 0 1px #0009; }

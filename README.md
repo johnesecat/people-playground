@@ -117,7 +117,7 @@ The cloud environment has no browser automation or attached iOS device. These ch
 
 1. On a recent iPhone and iPad, load the actual game, choose a map, spawn an object, drag and release it. Check menus and text inputs, audio after Play, and physics performance.
 2. Twist both ways while holding an object, lift either finger first, and try Camera pan + pinch. Calibrate rotation speed. Verify no duplicate movement or stuck grabs.
-3. Tap Activate, double-tap in Grab, and hold Use while aiming. Inspect an object and select Freeze. Try each toolbar shortcut and each tool in game.
+3. Use Spawn and Place, drag an object with one finger, and hold Use / fire while aiming. Inspect an object and select Freeze. Try each toolbar shortcut and each tool in game.
 4. Rotate portrait/landscape, hide/show Safari's bars, background and return, interrupt a gesture, and test Add to Home Screen. Verify safe-area placement and touch targets at your device size.
 5. Repeat on the published GitHub Pages URL with network/console inspection. Confirm all nine parts load locally and no runtime dependency fails.
 
