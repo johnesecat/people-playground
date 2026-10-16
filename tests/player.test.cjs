@@ -78,7 +78,7 @@ test('the actual shipped WASM compiles and uses unshared memory (no COOP/COEP ne
             for (let i = 0; i < count; i++) {
                 const flags = leb(); const initial = leb();
                 assert.equal(flags & 2, 0, 'not SharedArrayBuffer-backed');
-                assert.equal(initial * 65536, 536870912, '512 MiB initial memory');
+                assert.equal(initial * 65536, 134217728, '128 MiB initial memory (patched from 512 MiB; grows on demand)');
                 if (flags & 1) leb();
             }
         }

@@ -11,7 +11,7 @@
             const response = await fetcher(part.path, { signal });
             if (!response.ok) throw new Error(part.path + ': HTTP ' + response.status);
             // Each part is bounded (~19 MB). Blobs avoid a second giant joined
-            // ArrayBuffer in addition to Unity's 512 MB initial WASM heap.
+            // ArrayBuffer in addition to the WASM heap (initial 128 MiB, grows on demand).
             const blob = await response.blob();
             if (blob.size !== part.size) throw new Error(part.path + ': incomplete download (' + blob.size + ' of ' + part.size + ' bytes)');
             blobs.push(blob);
