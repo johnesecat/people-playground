@@ -1,147 +1,98 @@
-
-<html lang="en-us">
-
+<!doctype html>
+<html lang="en">
 <head>
-    <base href="https://cdn.jsdelivr.net/gh/genizy/web-port@main/people-playground/">
     <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity WebGL Player | People Playground</title>
-    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#16191f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>People Playground · Browser</title>
+    <link rel="icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
-    <style>
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            height: 100%;
-            width: 100%;
-        }
-
-        #unity-container {
-            width: 100%;
-            height: 100%;
-            position: fixed;
-            top: 0;
-            left: 0;
-        }
-    </style>
+    <script src="TemplateData/mobile-controls.js" defer></script>
+    <script src="TemplateData/player.js" defer></script>
 </head>
-
 <body>
-    <div id="loading-text" style="color: black; font-size: 48px; font-family: cursive; text-align: center; margin-top: 20px;">LOADING...</div>
-    <div id="unity-container" class="unity-desktop" hidden>
-        <canvas id="unity-canvas" tabindex="-1"></canvas>
-        <div id="unity-loading-bar">
-            <div id="unity-logo"></div>
-            <div id="unity-progress-bar-empty">
-                <div id="unity-progress-bar-full"></div>
+    <main id="unity-container">
+        <canvas id="unity-canvas" tabindex="0" aria-label="People Playground game"></canvas>
+        <section id="loading-panel" aria-labelledby="loading-title">
+            <div class="loading-card">
+                <p class="eyebrow">BROWSER EDITION</p>
+                <h1 id="loading-title">People Playground</h1>
+                <p id="loading-text" role="status">A physics sandbox, now within reach.</p>
+                <progress id="load-progress" max="1" value="0" aria-label="Game loading progress"></progress>
+                <p id="loading-detail">About 164 MB to download. Landscape is recommended on phones.</p>
+                <button id="start-button" type="button">Load game</button>
+                <button id="retry-button" type="button" hidden>Reload and retry</button>
+                <p class="fine-print">Runs entirely in your browser. This Unity build needs WebGL 2 and substantial free memory; older iPhones may not be able to load it.</p>
             </div>
+        </section>
+        <div id="unity-warning" role="alert" hidden></div>
+        <div id="touch-cursor" aria-hidden="true" hidden></div>
+        <div id="gesture-status" role="status" aria-live="polite"></div>
+        <div id="mobile-controls" hidden>
+            <nav id="mode-bar" aria-label="Touch interaction">
+                <button type="button" data-mode="grab" aria-pressed="true">Grab</button>
+                <button type="button" data-mode="activate" aria-pressed="false">Activate</button>
+                <button type="button" data-mode="camera" aria-pressed="false">Camera</button>
+                <button type="button" data-mode="context" aria-pressed="false">Inspect</button>
+                <button type="button" id="controls-help" aria-label="Controls and settings">?</button>
+                <button type="button" id="toggle-controls" aria-label="Collapse touch controls" aria-expanded="true">−</button>
+            </nav>
+            <nav id="action-bar" aria-label="Game shortcuts">
+                <button type="button" data-action="time">Pause</button>
+                <button type="button" data-action="toybox">Items</button>
+                <button type="button" data-action="spawnLeft">Spawn ←</button>
+                <button type="button" data-action="spawnRight">Spawn →</button>
+                <button type="button" data-hold="activateDirect">Use / fire</button>
+                <button type="button" data-hold="left" aria-label="Hold to rotate counterclockwise">↶</button>
+                <button type="button" data-hold="right" aria-label="Hold to rotate clockwise">↷</button>
+                <button type="button" data-action="delete">Delete</button>
+                <button type="button" id="more-controls" aria-expanded="false" aria-controls="extra-controls">More</button>
+            </nav>
+            <nav id="extra-controls" aria-label="Additional shortcuts" hidden>
+                <button type="button" data-action="slowmo">Slow time</button>
+                <button type="button" data-action="undo">Undo spawn</button>
+                <button type="button" data-action="toolPowerToggle">Tools / powers</button>
+                <button type="button" data-action="copy">Copy</button>
+                <button type="button" data-action="paste">Paste</button>
+                <button type="button" data-action="toggleLimbStatus">Details</button>
+                <button type="button" data-action="toggleThermalVision">Thermal</button>
+                <button type="button" data-action="snapToCenter">Center of mass</button>
+                <button type="button" data-action="pause">Esc / menu</button>
+                <button type="button" data-hold="fast" data-latch="true" aria-pressed="false">Shift</button>
+                <button type="button" data-hold="snap" data-latch="true" aria-pressed="false">Alt / snap</button>
+                <button type="button" data-zoom="-1" aria-label="Zoom in">Zoom +</button>
+                <button type="button" data-zoom="1" aria-label="Zoom out">Zoom −</button>
+                <label>Tool <select id="tool-select" aria-label="Tool shortcut">
+                    <option value="">Choose…</option><option value="tool1">Tool 1</option>
+                    <option value="tool2">Tool 2</option><option value="tool3">Tool 3</option>
+                    <option value="tool4">Tool 4</option><option value="tool5">Tool 5</option>
+                    <option value="tool6">Tool 6</option><option value="tool7">Tool 7</option>
+                    <option value="tool8">Tool 8</option><option value="tool9">Tool 9</option>
+                </select></label>
+                <button type="button" id="fullscreen-button">Fullscreen</button>
+            </nav>
         </div>
-        <div id="unity-warning"> </div>
-    </div>
-    <script>
-        var container = document.querySelector("#unity-container");
-        var canvas = document.querySelector("#unity-canvas");
-        var loadingBar = document.querySelector("#unity-loading-bar");
-        var progressBarFull = document.querySelector("#unity-progress-bar-full");
-        var fullscreenButton = document.querySelector("#unity-fullscreen-button");
-        var warningBanner = document.querySelector("#unity-warning");
-
-        function unityShowBanner(msg, type) {
-            function updateBannerVisibility() {
-                warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
-            }
-            var div = document.createElement('div');
-            div.innerHTML = msg;
-            warningBanner.appendChild(div);
-            if (type == 'error') div.style = 'background: red; padding: 10px;';
-            else {
-                if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
-                setTimeout(function () {
-                    warningBanner.removeChild(div);
-                    updateBannerVisibility();
-                }, 5000);
-            }
-            updateBannerVisibility();
-        }
-
-        function mergeFiles(fileParts) {
-            return new Promise((resolve, reject) => {
-                let buffers = [];
-
-                function fetchPart(index) {
-                    if (index >= fileParts.length) {
-                        let mergedBlob = new Blob(buffers);
-                        let mergedFileUrl = URL.createObjectURL(mergedBlob);
-                        resolve(mergedFileUrl);
-                        return;
-                    }
-                    fetch(fileParts[index]).then((response) => response.arrayBuffer()).then((data) => {
-                        buffers.push(data);
-                        fetchPart(index + 1);
-                    }).catch(reject);
-                }
-                fetchPart(0);
-            });
-        }
-
-        function getParts(file, start, end) {
-            let parts = [];
-            for (let i = start; i <= end; i++) {
-                parts.push(file + ".part" + i);
-            }
-            return parts;
-        }
-        Promise.all([
-            mergeFiles(getParts("Build/PPG.wasm", 1, 3)),
-            mergeFiles(getParts("Build/PPG.data", 1, 6))
-        ]).then(([wasmUrl, dataUrl]) => {
-            container.hidden = false;
-            var buildUrl = "Build";
-            var loaderUrl = buildUrl + "/PPG.loader.js";
-            var config = {
-                dataUrl: dataUrl,
-                frameworkUrl: buildUrl + "/PPG.framework.js",
-                codeUrl: wasmUrl,
-                streamingAssetsUrl: "StreamingAssets",
-                companyName: "Studio Minus",
-                productName: "People Playground",
-                productVersion: "0"
-            };
-            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-                var meta = document.createElement('meta');
-                meta.name = 'viewport';
-                meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-                document.getElementsByTagName('head')[0].appendChild(meta);
-                container.className = "unity-mobile";
-                canvas.className = "unity-mobile";
-            } else {
-                function resizeCanvas() {
-                    canvas.width = window.innerWidth;
-                    canvas.height = window.innerHeight;
-                    canvas.style.width = window.innerWidth + "px";
-                    canvas.style.height = window.innerHeight + "px";
-                }
-                resizeCanvas();
-                window.addEventListener('resize', resizeCanvas);
-            }
-            loadingBar.style.display = "block";
-            var script = document.createElement("script");
-            script.src = loaderUrl;
-            script.onload = () => {
-                createUnityInstance(canvas, config, (progress) => {
-                    progressBarFull.style.width = 100 * progress + "%";
-                }).then((unityInstance) => {
-                    loadingBar.style.display = "none";
-                    document.querySelector("#loading-text").remove();
-                }).catch((message) => {
-                    alert(message);
-                });
-            };
-            document.body.appendChild(script);
-        });
-    </script>
+        <section id="help-panel" role="dialog" aria-modal="true" aria-labelledby="help-title" hidden>
+            <div class="help-card">
+                <h2 id="help-title">Made for touch</h2>
+                <dl>
+                    <dt>Grab</dt><dd>Drag with one finger to pick up objects, use tools, and click game menus. Double-tap an object to activate it.</dd>
+                    <dt>Two-finger rotation</dt><dd>In Grab, keep your first finger on the object and twist a second finger around it. This drives the game's A / D rotation; use ↶ / ↷ for fine control.</dd>
+                    <dt>Activate</dt><dd>Tap an object to send F without grabbing. Hold Use / fire to keep activating while your other finger aims or drags.</dd>
+                    <dt>Camera</dt><dd>Drag to pan. Pinch with two fingers to zoom and move them together to pan. Grab reserves two fingers for rotation so a twist never accidentally zooms.</dd>
+                    <dt>Inspect</dt><dd>Tap for the object's right-click menu, then return to Grab to choose an entry. In Grab, a stationary long-press also opens this menu. Freeze and other object actions live there.</dd>
+                    <dt>Items & tools</dt><dd>Tap Items, select an item, then Spawn ← / → at the last touched position. Latch Shift for faster rotation / multiselect, or Alt for snapping. More includes Copy, Paste, Details, Thermal, and tools 1–9. Tools / powers sends Left Ctrl.</dd>
+                </dl>
+                <label class="setting"><input id="touch-enabled" type="checkbox"> Show touch controls (also works with a mouse)</label>
+                <label class="setting"><input id="double-tap" type="checkbox" checked> Double-tap to activate in Grab</label>
+                <label class="setting">Rotation speed <input id="rotation-speed" type="range" min="45" max="720" step="15" value="180"> <output id="rotation-value">180°/s</output></label>
+                <p class="fine-print">Twisting emulates rotation keys, not a direct object-angle API. Match this speed to the game's rotation rate if it feels too fast or slow. Shortcuts assume the game's default bindings; custom bindings must be restored in game. No Unity project source is included.</p>
+                <p id="display-hint" class="fine-print">On iPhone, use Safari → Share → Add to Home Screen for a larger display. Fullscreen is not available on every iOS version. Use the game's Settings for volume and graphics.</p>
+                <button id="close-help" type="button">Back to game</button>
+            </div>
+        </section>
+    </main>
 </body>
-
 </html>

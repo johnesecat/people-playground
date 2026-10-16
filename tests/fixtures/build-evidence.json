@@ -1,0 +1,76 @@
+{
+  "data": {
+    "parts": [
+      {
+        "path": "Build/PPG.data.part1",
+        "bytes": 18814925,
+        "sha256": "543712b7e947821328ab2a51613f3a32d18cdfe4dd948797ccd4347b4e46b2d1"
+      },
+      {
+        "path": "Build/PPG.data.part2",
+        "bytes": 18814925,
+        "sha256": "47c14b5f583cbfc1f211da909aee47c2d16fbea35d0b0c80ef611b294a38467a"
+      },
+      {
+        "path": "Build/PPG.data.part3",
+        "bytes": 18814925,
+        "sha256": "47627464408915dee8554e44249e18f788c73ff7ed1805586afeda2ed93814af"
+      },
+      {
+        "path": "Build/PPG.data.part4",
+        "bytes": 18814925,
+        "sha256": "d554f0670e61b6ab49259b1b7b52a30ba5160fafc087ab837626d723b3886155"
+      },
+      {
+        "path": "Build/PPG.data.part5",
+        "bytes": 18814925,
+        "sha256": "f5acc33fa5318ffb7106ece390a7db04e7950c62a27eb8207aac1f376107054b"
+      },
+      {
+        "path": "Build/PPG.data.part6",
+        "bytes": 18814923,
+        "sha256": "81e139d5fe420dd585d524ad5b276fe466492f7c6c014f68afe274b607f107ba"
+      }
+    ],
+    "bytes": 112889548,
+    "sha256": "1edda9e079876972027719caf5a2918bbfb5e5084c357049dd0bd13c13cc9eb2"
+  },
+  "wasm": {
+    "parts": [
+      {
+        "path": "Build/PPG.wasm.part1",
+        "bytes": 16957061,
+        "sha256": "826ed8decb9bf90342729be1ae4f4e4ad20130ae353319f64399ab04fce8b54a"
+      },
+      {
+        "path": "Build/PPG.wasm.part2",
+        "bytes": 16957061,
+        "sha256": "3d2b1dd273a2f35c892fdc859bbe3b23935a03323922623f6d05a78fa9366420"
+      },
+      {
+        "path": "Build/PPG.wasm.part3",
+        "bytes": 16957061,
+        "sha256": "fe42913cb646208f0555811a92b993e80a5ad480246b14255dbd445889168b9c"
+      }
+    ],
+    "bytes": 50871183,
+    "sha256": "476951429c119df976c36310ee1759e353f4086e17b51dce1ba7b3a7fd5a2aa7"
+  },
+  "metadata": {
+    "magic": "0xfab11baf",
+    "version": 29,
+    "bytes": 9375196
+  },
+  "controls": {
+    "tool": "UnityPy",
+    "version": "1.25.4",
+    "path_id": 179,
+    "asset_name": "default_controls",
+    "asset_sha256": "3ecb1d1e7bf3b07877eeed74e938cf6a37b2b052a79bd1dc818917270ea1c350",
+    "bundle_sha256": "06312c9cade1fec8f604062f18abc68a05c8ab7eea4c5382cfa367a760f488dd",
+    "action_count": 55,
+    "unity_version": "2022.3.30.3.1",
+    "fixture_sha256": "c7060f8d96b030a85da558ddf69237d97493515692f6d8fac5d07d220a6fa367",
+    "fixture_normalization": "CRLF to LF only; asset_sha256 identifies the original extracted bytes"
+  }
+}

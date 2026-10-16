@@ -1,0 +1,442 @@
+{
+    "pan": {
+        "Name": "Pan",
+        "Key": 325,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 2,
+        "Universe": 1
+    },
+    "zoomIn": {
+        "Name": "Zoom in",
+        "Key": 43,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": true,
+        "Category": 2,
+        "Universe": 1
+    },
+    "zoomOut": {
+        "Name": "Zoom out",
+        "Key": 45,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": true,
+        "Category": 2,
+        "Universe": 1
+    },
+    "drag": {
+        "Name": "Drag object",
+        "Key": 323,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "delete": {
+        "Name": "Delete object",
+        "Key": 8,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "activateDirect": {
+        "Name": "Activate object under cursor / currently holding",
+        "Key": 102,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "slowmo": {
+        "Name": "Toggle slow motion",
+        "Key": 103,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "toggleLimbStatus": {
+        "Name": "Toggle detail view",
+        "Key": 115,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "time": {
+        "Name": "Toggle time",
+        "Key": 32,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "pause": {
+        "Name": "Pause menu / back",
+        "Key": 27,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 1,
+        "Universe": 1
+    },
+    "toybox": {
+        "Name": "Toggle sidepanels",
+        "Key": 9,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 1,
+        "Universe": 1
+    },
+    "toggleUi": {
+        "Name": "Toggle user interface",
+        "Key": 94,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 1,
+        "Universe": 1
+    },
+    "toolPowerToggle": {
+        "Name": "Toggle between tools and powers",
+        "Key": 306,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 1,
+        "Universe": 2
+    },
+    "tool1": {
+        "Name": "Switch to first tool",
+        "Key": 49,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "tool2": {
+        "Name": "Switch to second tool",
+        "Key": 50,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "tool3": {
+        "Name": "Switch to third tool",
+        "Key": 51,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "tool4": {
+        "Name": "Switch to 4th tool",
+        "Key": 52,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "tool5": {
+        "Name": "Switch to 5th tool",
+        "Key": 53,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "tool6": {
+        "Name": "Switch to 6th tool",
+        "Key": 54,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "tool7": {
+        "Name": "Switch to 7th tool",
+        "Key": 55,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "tool8": {
+        "Name": "Switch to 8th tool",
+        "Key": 56,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "tool9": {
+        "Name": "Switch to 9th tool",
+        "Key": 57,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "spawnLeft": {
+        "Name": "Spawn left facing",
+        "Key": 113,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "spawnRight": {
+        "Name": "Spawn right facing",
+        "Key": 101,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "left": {
+        "Name": "Rotate left",
+        "Key": 97,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "right": {
+        "Name": "Rotate right",
+        "Key": 100,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "fast": {
+        "Name": "Speed up rotation / uniform resizing / multiselect",
+        "Key": 304,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "undo": {
+        "Name": "Undo",
+        "Key": 122,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "snap": {
+        "Name": "Snap",
+        "Key": 308,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "snapToCenter": {
+        "Name": "Snap to center of mass",
+        "Key": 109,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "copy": {
+        "Name": "Copy",
+        "Key": 99,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "paste": {
+        "Name": "Paste",
+        "Key": 118,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "context": {
+        "Name": "Context menu",
+        "Key": 324,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "panRight": {
+        "Name": "Move camera right",
+        "Key": 275,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 2,
+        "Universe": 1
+    },
+    "panLeft": {
+        "Name": "Move camera left",
+        "Key": 276,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 2,
+        "Universe": 1
+    },
+    "panUp": {
+        "Name": "Move camera up",
+        "Key": 273,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 2,
+        "Universe": 1
+    },
+    "panDown": {
+        "Name": "Move camera down",
+        "Key": 274,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 2,
+        "Universe": 1
+    },
+    "activateIndirect": {
+        "Name": "Activate object under cursor",
+        "Key": 0,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": true,
+        "Category": 0,
+        "Universe": 2
+    },
+    "selectMultiple": {
+        "Name": "Select multiple",
+        "Key": 306,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 3,
+        "Universe": 3
+    },
+    "localSpaceTransform": {
+        "Name": "Local space transformation",
+        "Key": 103,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 3,
+        "Universe": 3
+    },
+    "igniteSelection": {
+        "Name": "Ignite selected objects",
+        "Key": 0,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "freezeSelection": {
+        "Name": "Freeze selected objects",
+        "Key": 0,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "resizeSelection": {
+        "Name": "Resize selected objects",
+        "Key": 0,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "arrangeSelection": {
+        "Name": "Edit layers of selected objects",
+        "Key": 0,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "toggleHoveringHighlights": {
+        "Name": "Toggle hovering highlights",
+        "Key": 0,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 1,
+        "Universe": 2
+    },
+    "toggleThermalVision": {
+        "Name": "Toggle thermal vision",
+        "Key": 116,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 2
+    },
+    "eyedrop": {
+        "Name": "Choose objects under cursor",
+        "Key": 0,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "arrangeDown": {
+        "Name": "Move layer down",
+        "Key": 0,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "arrangeUp": {
+        "Name": "Move layer up",
+        "Key": 0,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "arrangeFront": {
+        "Name": "Bring to front",
+        "Key": 0,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "arrangeBack": {
+        "Name": "Send to back",
+        "Key": 0,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "incrementGrid": {
+        "Name": "Increment grid size",
+        "Key": 0,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "decrementGrid": {
+        "Name": "Decrement grid size",
+        "Key": 0,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "incrementAngleSnap": {
+        "Name": "Increment angle snap",
+        "Key": 0,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    },
+    "decrementAngleSnap": {
+        "Name": "Decrement angle snap",
+        "Key": 0,
+        "SecondaryKey": 0,
+        "InvisibleInMenu": false,
+        "Category": 0,
+        "Universe": 1
+    }
+}
