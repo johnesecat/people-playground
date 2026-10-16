@@ -366,6 +366,15 @@
         setEnabled();
         controls.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => controller.setMode(button.dataset.mode)));
         controls.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', () => controller.input.pulse(ACTION_KEYS[button.dataset.action])));
+        // One facing toggle decides which spawn key the Spawn button sends (Q = left, E = right).
+        let facing = 'left';
+        const facingButtons = controls.querySelectorAll('[data-facing]');
+        const setFacing = next => {
+            facing = next;
+            facingButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.facing === next)));
+        };
+        facingButtons.forEach(button => button.addEventListener('click', () => setFacing(button.dataset.facing)));
+        controls.querySelector('[data-spawn]').addEventListener('click', () => controller.input.pulse(ACTION_KEYS[facing === 'left' ? 'spawnLeft' : 'spawnRight']));
         const held = new Map();
         controls.querySelectorAll('[data-hold]').forEach(button => {
             if (button.dataset.latch) {

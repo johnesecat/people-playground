@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const { ASSETS, partPaths, mergeParts, pixelRatio } = require('../TemplateData/player.js');
+const { ASSETS, partPaths, mergeParts, pixelRatio, guardFullscreen } = require('../TemplateData/player.js');
 
 test('split downloads merge in order and account for all bytes', async () => {
     const requested = [], counts = [];
@@ -31,9 +31,21 @@ test('network failures and cancellation reach the caller', async () => {
     await assert.rejects(mergeParts([{ path: 'cancel', size: 1 }], async (name, options) => { options.signal.throwIfAborted(); }, () => {}, abort.signal), /abort/i);
 });
 
-test('mobile rendering caps DPR, including desktop-user-agent iPads', () => {
-    assert.equal(pixelRatio({ navigator: { maxTouchPoints: 5 }, devicePixelRatio: 3 }), 1);
+test('rendering is sharp on phones but capped by a physical-pixel budget', () => {
+    assert.equal(pixelRatio({ navigator: { maxTouchPoints: 5 }, devicePixelRatio: 3, innerWidth: 390, innerHeight: 844 }), 2);
     assert.equal(pixelRatio({ navigator: { maxTouchPoints: 0 }, devicePixelRatio: 3 }), 2);
+    const large = pixelRatio({ navigator: { maxTouchPoints: 5 }, devicePixelRatio: 3, innerWidth: 2560, innerHeight: 1440 });
+    assert.ok(large >= 1 && large < 2, 'large screens shrink DPR to fit the budget');
+    assert.ok(2560 * 1440 * large * large <= 8000000 + 1);
+});
+
+test('synthetic fullscreen requests without user activation do not throw', async () => {
+    class Element { requestFullscreen() { throw new TypeError('Cannot request fullscreen without transient activation.'); } }
+    const env = { Element, navigator: { userActivation: { isActive: false } } };
+    guardFullscreen(env);
+    await new Element().requestFullscreen();
+    env.navigator.userActivation.isActive = true;
+    assert.throws(() => new Element().requestFullscreen(), /transient activation/);
 });
 
 test('all deployed resources resolve locally under a GitHub Pages project path', () => {

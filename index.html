@@ -42,8 +42,11 @@
             <nav id="action-bar" aria-label="Game shortcuts">
                 <button type="button" data-action="time">Pause</button>
                 <button type="button" data-action="toybox">Items</button>
-                <button type="button" data-action="spawnLeft">Spawn ←</button>
-                <button type="button" data-action="spawnRight">Spawn →</button>
+                <div class="facing-toggle" role="group" aria-label="Spawn facing">
+                    <button type="button" data-facing="left" aria-pressed="true" aria-label="Spawn facing left">←</button>
+                    <button type="button" data-facing="right" aria-pressed="false" aria-label="Spawn facing right">→</button>
+                </div>
+                <button type="button" data-spawn>Spawn</button>
                 <button type="button" data-hold="activateDirect">Use / fire</button>
                 <button type="button" data-hold="left" aria-label="Hold to rotate counterclockwise">↶</button>
                 <button type="button" data-hold="right" aria-label="Hold to rotate clockwise">↷</button>
@@ -83,7 +86,7 @@
                     <dt>Activate</dt><dd>Tap an object to send F without grabbing. Hold Use / fire to keep activating while your other finger aims or drags.</dd>
                     <dt>Camera</dt><dd>Drag to pan. Pinch with two fingers to zoom and move them together to pan. Grab reserves two fingers for rotation so a twist never accidentally zooms.</dd>
                     <dt>Inspect</dt><dd>Tap for the object's right-click menu, then return to Grab to choose an entry. In Grab, a stationary long-press also opens this menu. Freeze and other object actions live there.</dd>
-                    <dt>Items & tools</dt><dd>Tap Items, select an item, then Spawn ← / → at the last touched position. Latch Shift for faster rotation / multiselect, or Alt for snapping. More includes Copy, Paste, Details, Thermal, and tools 1–9. Tools / powers sends Left Ctrl.</dd>
+                    <dt>Items & tools</dt><dd>Tap Items, choose the spawn facing (← or → is outlined when active), then Spawn at the last touched position. Latch Shift for faster rotation / multiselect, or Alt for snapping. More includes Copy, Paste, Details, Thermal, and tools 1–9. Tools / powers sends Left Ctrl.</dd>
                 </dl>
                 <label class="setting"><input id="touch-enabled" type="checkbox"> Show touch controls (also works with a mouse)</label>
                 <label class="setting"><input id="double-tap" type="checkbox" checked> Double-tap to activate in Grab</label>

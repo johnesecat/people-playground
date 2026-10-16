@@ -19,10 +19,29 @@
         }
         return new Blob(blobs, { type: 'application/octet-stream' });
     }
+    // Physical-pixel budget for the WebGL canvas. Phones get sharp rendering
+    // (up to 2x density) while staying inside the 512 MB initial heap.
+    const PIXEL_BUDGET = 8000000;
     function pixelRatio(env) {
-        // Retina phones otherwise allocate multi-megapixel framebuffers. This
-        // affects rendering only; input remains in canvas CSS coordinates.
-        return env.navigator.maxTouchPoints > 0 ? 1 : Math.min(env.devicePixelRatio || 1, 2);
+        // Rendering only; input stays in canvas CSS coordinates.
+        let ratio = Math.min(env.devicePixelRatio || 1, 2);
+        const cssArea = (env.innerWidth || 0) * (env.innerHeight || 0);
+        if (cssArea > 0 && cssArea * ratio * ratio > PIXEL_BUDGET) {
+            ratio = Math.max(1, Math.sqrt(PIXEL_BUDGET / cssArea));
+        }
+        return ratio;
+    }
+    function guardFullscreen(env) {
+        // Unity answers some synthetic mouse events with requestFullscreen. Browsers
+        // require a real user gesture, so skip the request instead of throwing.
+        const proto = env.Element && env.Element.prototype;
+        if (!proto || typeof proto.requestFullscreen !== 'function') return;
+        const native = proto.requestFullscreen;
+        proto.requestFullscreen = function (...args) {
+            const activation = env.navigator.userActivation;
+            if (activation && !activation.isActive) return Promise.resolve();
+            return native.apply(this, args).catch(() => {});
+        };
     }
     function loadScript(document, path) {
         return new Promise((resolve, reject) => {
@@ -112,6 +131,7 @@
                 objectUrls.push(dataUrl);
                 label.textContent = 'Starting Unity…';
                 detail.textContent = 'Compiling the game. First launch can take a while on phones.';
+                guardFullscreen(root);
                 await loadScript(document, 'Build/PPG.loader.js');
                 if (typeof root.createUnityInstance !== 'function') throw new Error('The Unity loader did not provide createUnityInstance.');
                 await root.createUnityInstance(canvas, {
@@ -145,7 +165,7 @@
             if (!event.persisted && phase === 'loading') abort.abort();
         });
     }
-    const api = { ASSETS, partPaths, mergeParts, pixelRatio, loadScript };
+    const api = { ASSETS, partPaths, mergeParts, pixelRatio, guardFullscreen, loadScript };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     else { root.BrowserPlayer = api; boot(); }
 })(typeof window !== 'undefined' ? window : globalThis);
