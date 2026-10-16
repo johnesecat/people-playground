@@ -19,11 +19,13 @@
         }
         return new Blob(blobs, { type: 'application/octet-stream' });
     }
-    // Physical-pixel budget for the WebGL canvas. Phones get sharp rendering
-    // (up to 2x density) while staying inside the 512 MB initial heap.
+    // Physical-pixel budget for desktop WebGL canvases.
     const PIXEL_BUDGET = 8000000;
     function pixelRatio(env) {
-        // Rendering only; input stays in canvas CSS coordinates.
+        // Rendering only; input stays in canvas CSS coordinates. Touch devices stay at
+        // 1x: a denser WebGL canvas raised peak memory during Unity's compile step and
+        // Safari killed the tab ("A problem repeatedly occurred").
+        if (env.navigator.maxTouchPoints > 0) return 1;
         let ratio = Math.min(env.devicePixelRatio || 1, 2);
         const cssArea = (env.innerWidth || 0) * (env.innerHeight || 0);
         if (cssArea > 0 && cssArea * ratio * ratio > PIXEL_BUDGET) {

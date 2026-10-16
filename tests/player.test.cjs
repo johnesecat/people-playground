@@ -31,10 +31,10 @@ test('network failures and cancellation reach the caller', async () => {
     await assert.rejects(mergeParts([{ path: 'cancel', size: 1 }], async (name, options) => { options.signal.throwIfAborted(); }, () => {}, abort.signal), /abort/i);
 });
 
-test('rendering is sharp on phones but capped by a physical-pixel budget', () => {
-    assert.equal(pixelRatio({ navigator: { maxTouchPoints: 5 }, devicePixelRatio: 3, innerWidth: 390, innerHeight: 844 }), 2);
+test('touch devices render at 1x to stay within Safari memory; desktops are capped by a pixel budget', () => {
+    assert.equal(pixelRatio({ navigator: { maxTouchPoints: 5 }, devicePixelRatio: 3, innerWidth: 390, innerHeight: 844 }), 1);
     assert.equal(pixelRatio({ navigator: { maxTouchPoints: 0 }, devicePixelRatio: 3 }), 2);
-    const large = pixelRatio({ navigator: { maxTouchPoints: 5 }, devicePixelRatio: 3, innerWidth: 2560, innerHeight: 1440 });
+    const large = pixelRatio({ navigator: { maxTouchPoints: 0 }, devicePixelRatio: 3, innerWidth: 2560, innerHeight: 1440 });
     assert.ok(large >= 1 && large < 2, 'large screens shrink DPR to fit the budget');
     assert.ok(2560 * 1440 * large * large <= 8000000 + 1);
 });
