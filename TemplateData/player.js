@@ -2,7 +2,7 @@
     'use strict';
     const ASSETS = {
         wasm: [16957061, 16957061, 16957061],
-        data: [18814925, 18814925, 18814925, 18814925, 18814925, 18814923]
+        data: [18471174, 18471174, 18471174, 18471174, 18471174, 18471171]
     };
     function partPaths(kind) { return ASSETS[kind].map((size, index) => ({ path: 'Build/PPG.' + kind + '.part' + (index + 1), size })); }
     async function mergeParts(parts, fetcher, onProgress, signal) {
