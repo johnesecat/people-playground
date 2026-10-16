@@ -19,20 +19,6 @@
         }
         return new Blob(blobs, { type: 'application/octet-stream' });
     }
-    // Physical-pixel budget for desktop WebGL canvases.
-    const PIXEL_BUDGET = 8000000;
-    function pixelRatio(env) {
-        // Rendering only; input stays in canvas CSS coordinates. Touch devices stay at
-        // 1x: a denser WebGL canvas raised peak memory during Unity's compile step and
-        // Safari killed the tab ("A problem repeatedly occurred").
-        if (env.navigator.maxTouchPoints > 0) return 1;
-        let ratio = Math.min(env.devicePixelRatio || 1, 2);
-        const cssArea = (env.innerWidth || 0) * (env.innerHeight || 0);
-        if (cssArea > 0 && cssArea * ratio * ratio > PIXEL_BUDGET) {
-            ratio = Math.max(1, Math.sqrt(PIXEL_BUDGET / cssArea));
-        }
-        return ratio;
-    }
     function guardFullscreen(env) {
         // Unity answers some synthetic mouse events with requestFullscreen. Browsers
         // require a real user gesture, so skip the request instead of throwing.
@@ -140,7 +126,7 @@
                     dataUrl, codeUrl: wasmUrl, frameworkUrl: 'Build/PPG.framework.js',
                     streamingAssetsUrl: 'StreamingAssets', companyName: 'Studio Minus',
                     productName: 'People Playground', productVersion: '0',
-                    devicePixelRatio: pixelRatio(root), matchWebGLToCanvasSize: true,
+                    matchWebGLToCanvasSize: true,
                     showBanner(message, type) {
                         if (type === 'error') fail(new Error(message));
                         else { banner.textContent = message; banner.hidden = false; }
@@ -167,7 +153,7 @@
             if (!event.persisted && phase === 'loading') abort.abort();
         });
     }
-    const api = { ASSETS, partPaths, mergeParts, pixelRatio, guardFullscreen, loadScript };
+    const api = { ASSETS, partPaths, mergeParts, guardFullscreen, loadScript };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     else { root.BrowserPlayer = api; boot(); }
 })(typeof window !== 'undefined' ? window : globalThis);

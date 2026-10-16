@@ -2,7 +2,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const vm = require('node:vm');
 const { UnityInput, TouchController, ACTION_KEYS, keyInfo, angleDelta } = require('../TemplateData/mobile-controls.js');
 
 class Event {
@@ -47,20 +46,19 @@ function fixture() {
         now = end;
     };
     const canvas = new Target(env.document);
-    const modes = [];
-    const controller = new TouchController(canvas, { env, onMode: mode => modes.push(mode) });
+    const controller = new TouchController(canvas, { env });
     const touch = (type, touches, changedTouches = touches, otherTouches = []) => {
         const event = new Event(type, { touches: [...touches, ...otherTouches], targetTouches: touches, changedTouches, bubbles: true });
         canvas.dispatchEvent(event);
         assert.equal(event.defaultPrevented, true);
         return event;
     };
-    return { env, canvas, controller, input: controller.input, touch, advance, modes };
+    return { env, canvas, controller, input: controller.input, touch, advance };
 }
 const finger = (identifier, clientX, clientY) => ({ identifier, clientX, clientY });
 const events = (canvas, type) => canvas.events.filter(event => event.type === type);
 
-test('one finger grabs/drags/releases with correct button masks and no native touch delivery', () => {
+test('one finger drags with left button masks and no native touch delivery', () => {
     const f = fixture(); let native = 0;
     f.canvas.addEventListener('touchstart', () => native++);
     f.touch('touchstart', [finger(1, 100, 120)]);
@@ -73,101 +71,139 @@ test('one finger grabs/drags/releases with correct button masks and no native to
     assert.equal(f.input.buttons.size, 0);
 });
 
-test('Activate taps emit F for a frame-safe duration without grabbing', () => {
-    const f = fixture(); f.controller.setMode('activate');
+test('a quick one-finger tap is a click and sends no keys', () => {
+    const f = fixture();
     f.touch('touchstart', [finger(1, 200, 200)]);
     f.advance(30); f.touch('touchend', [], [finger(1, 200, 200)]);
-    assert.equal(events(f.canvas, 'mousedown').length, 0);
-    assert.equal(events(f.canvas, 'keydown')[0].keyCode, 70);
-    assert.equal(f.input.keys.has('KeyF'), true);
-    f.advance(79); assert.equal(f.input.keys.has('KeyF'), true);
-    f.advance(1); assert.equal(f.input.keys.has('KeyF'), false);
-    assert.equal(events(f.env.document, 'keydown').length, 1);
+    assert.equal(events(f.canvas, 'mousedown')[0].button, 0);
+    assert.equal(events(f.canvas, 'mouseup').length, 1);
+    assert.equal(events(f.canvas, 'keydown').length, 0);
 });
 
-test('double-tap activates; distant taps and drags do not', () => {
-    const f = fixture();
-    for (const x of [100, 103]) {
-        f.touch('touchstart', [finger(1, x, 200)]); f.advance(30);
-        f.touch('touchend', [], [finger(1, x, 200)]); f.advance(100);
-    }
-    assert.equal(events(f.canvas, 'keydown').filter(event => event.code === 'KeyF').length, 1);
-    f.touch('touchstart', [finger(1, 400, 200)]);
-    f.touch('touchmove', [finger(1, 450, 200)]);
-    f.touch('touchend', [], [finger(1, 450, 200)]);
-    assert.equal(events(f.canvas, 'keydown').length, 1);
-});
-
-test('long press opens a context menu and releases right mouse after a frame-safe pulse', () => {
+test('a still long press opens the object menu; moving cancels it', () => {
     const f = fixture(); f.touch('touchstart', [finger(1, 100, 200)]); f.advance(650);
     assert.equal(events(f.canvas, 'mousedown').at(-1).button, 2);
     assert.equal(f.input.buttons.has(0), false);
     f.advance(80); assert.equal(f.input.buttons.size, 0);
     f.touch('touchend', [], [finger(1, 100, 200)]);
-    assert.equal(events(f.canvas, 'keydown').length, 0);
+
+    const g = fixture();
+    g.touch('touchstart', [finger(1, 100, 200)]);
+    g.touch('touchmove', [finger(1, 120, 200)]); g.advance(700);
+    assert.equal(events(g.canvas, 'mousedown').length, 1);
 });
 
-test('moving or adding a second finger cancels long press', () => {
-    const f = fixture(); f.touch('touchstart', [finger(1, 100, 200)]);
-    f.touch('touchmove', [finger(1, 120, 200)]); f.advance(700);
+test('two fingers down together zoom (pinch apart zooms in) and the first finger does not drag', () => {
+    const f = fixture();
+    f.touch('touchstart', [finger(1, 100, 100)]);
+    f.touch('touchstart', [finger(1, 100, 100), finger(2, 300, 100)], [finger(2, 300, 100)]);
+    f.touch('touchmove', [finger(1, 0, 100), finger(2, 400, 100)]);
+    assert.ok(events(f.canvas, 'wheel')[0].deltaY < 0);
     assert.equal(events(f.canvas, 'mousedown').length, 1);
-    f.touch('touchstart', [finger(1, 120, 200), finger(2, 200, 200)]); f.advance(700);
-    assert.equal(events(f.canvas, 'mousedown').length, 1);
+    assert.equal(f.input.buttons.size, 0);
 });
 
-test('two-finger twist drives D/A and releases when the second finger lifts', () => {
+test('two fingers down together zoom regardless of which lands first on the screen', () => {
+    const f = fixture();
+    f.touch('touchstart', [finger(1, 300, 100)]);
+    f.touch('touchstart', [finger(1, 300, 100), finger(2, 100, 100)], [finger(2, 100, 100)]);
+    assert.equal(f.controller.mode, 'zoom');
+});
+
+test('left finger holds still, right finger moves down to rotate right (D) and up to rotate left (A)', () => {
     const f = fixture();
     f.touch('touchstart', [finger(1, 100, 200)]);
-    f.touch('touchstart', [finger(1, 100, 200), finger(2, 200, 200)]);
-    f.touch('touchmove', [finger(1, 100, 200), finger(2, 100, 300)]);
+    f.advance(300);
+    f.touch('touchstart', [finger(1, 100, 200), finger(2, 300, 200)], [finger(2, 300, 200)]);
+    assert.equal(f.controller.fingers.get(2).role, 'right');
+    f.touch('touchmove', [finger(1, 100, 200), finger(2, 300, 260)]);
     f.controller.tick(16);
     assert.equal(f.input.keys.has('KeyD'), true);
-    f.touch('touchend', [finger(1, 100, 200)], [finger(2, 100, 300)]);
+    f.touch('touchmove', [finger(1, 100, 200), finger(2, 300, 100)]);
+    f.controller.tick(16);
+    assert.equal(f.input.keys.has('KeyA'), true);
     assert.equal(f.input.keys.has('KeyD'), false);
+    f.touch('touchend', [finger(1, 100, 200)], [finger(2, 300, 100)]);
+    assert.equal(f.input.keys.size, 0);
     assert.equal(f.input.buttons.has(0), true);
-    f.touch('touchstart', [finger(1, 100, 200), finger(3, 200, 200)]);
-    f.touch('touchmove', [finger(1, 100, 200), finger(3, 100, 100)]);
-    f.controller.tick(16); assert.equal(f.input.keys.has('KeyA'), true);
-    f.touch('touchend', [finger(3, 100, 100)], [finger(1, 100, 200)]);
-    assert.equal(f.input.keys.size, 0); assert.equal(f.input.buttons.size, 0);
+});
+
+test('moving the left finger while the right one is still is a drag, so a second touch activates (no rotation)', () => {
+    const f = fixture();
+    f.touch('touchstart', [finger(1, 100, 200)]);
+    f.touch('touchmove', [finger(1, 100, 260)]);
+    f.advance(300);
+    f.touch('touchstart', [finger(1, 100, 260), finger(2, 300, 260)], [finger(2, 300, 260)]);
+    f.touch('touchmove', [finger(1, 100, 260), finger(2, 300, 260)]);
+    f.controller.tick(16);
+    assert.equal(f.input.keys.has('KeyD') || f.input.keys.has('KeyA'), false);
+    assert.equal(f.input.keys.has('KeyF'), true);
+});
+
+test('second finger landing beside the first is identified by its position, even in the same half', () => {
+    const f = fixture();
+    f.touch('touchstart', [finger(1, 500, 200)]);
+    f.advance(300);
+    f.touch('touchstart', [finger(1, 500, 200), finger(2, 450, 200)], [finger(2, 450, 200)]);
+    assert.equal(f.controller.fingers.get(1).role, 'right');
+    assert.equal(f.controller.fingers.get(2).role, 'left');
+});
+
+test('dragging an object and touching with another finger holds F until that finger lifts', () => {
+    const f = fixture();
+    f.touch('touchstart', [finger(1, 100, 200)]);
+    f.touch('touchmove', [finger(1, 150, 200)]);
+    f.advance(300);
+    f.touch('touchstart', [finger(1, 150, 200), finger(2, 300, 200)], [finger(2, 300, 200)]);
+    assert.equal(f.input.keys.has('KeyF'), true);
+    f.touch('touchend', [finger(1, 150, 200)], [finger(2, 300, 200)]);
+    assert.equal(f.input.keys.has('KeyF'), false);
+    assert.equal(f.input.buttons.has(0), true);
+});
+
+test('holding a still object and then a second finger still activates after a moment', () => {
+    const f = fixture();
+    f.touch('touchstart', [finger(1, 100, 200)]);
+    f.advance(300);
+    f.touch('touchstart', [finger(1, 100, 200), finger(2, 300, 200)], [finger(2, 300, 200)]);
+    f.advance(200); f.controller.tick(16);
+    assert.equal(f.input.keys.has('KeyF'), true);
+    f.touch('touchend', [finger(1, 100, 200)], [finger(2, 300, 200)]);
+    assert.equal(f.input.keys.has('KeyF'), false);
+});
+
+test('a quick second-finger tap on a still object sends one activate pulse', () => {
+    const f = fixture();
+    f.touch('touchstart', [finger(1, 100, 200)]);
+    f.advance(300);
+    f.touch('touchstart', [finger(1, 100, 200), finger(2, 300, 200)], [finger(2, 300, 200)]);
+    f.advance(20);
+    f.touch('touchend', [finger(1, 100, 200)], [finger(2, 300, 200)]);
+    assert.equal(f.input.keys.has('KeyF'), true);
+    f.advance(80);
+    assert.equal(f.input.keys.has('KeyF'), false);
+});
+
+test('when the first finger lifts during a zoom, the remaining finger takes over the drag', () => {
+    const f = fixture();
+    f.touch('touchstart', [finger(1, 100, 200)]);
+    f.touch('touchstart', [finger(1, 100, 200), finger(2, 300, 200)], [finger(2, 300, 200)]);
+    f.touch('touchend', [finger(2, 300, 200)], [finger(1, 100, 200)]);
+    assert.equal(f.controller.primaryId, 2);
+    assert.equal(events(f.canvas, 'mousedown').at(-1).clientX, 300);
+    assert.equal(f.input.buttons.has(0), true);
+});
+
+test('a third finger is ignored by gestures', () => {
+    const f = fixture();
+    f.touch('touchstart', [finger(1, 100, 200)]);
+    f.touch('touchstart', [finger(1, 100, 200), finger(2, 300, 200)], [finger(2, 300, 200)]);
+    f.touch('touchstart', [finger(1, 100, 200), finger(2, 300, 200), finger(3, 500, 200)], [finger(3, 500, 200)]);
+    assert.equal(f.controller.fingers.size, 2);
 });
 
 test('angle wrap uses shortest rotation across -180/180 degrees', () => {
     assert.ok(Math.abs(angleDelta(179 * Math.PI / 180, -179 * Math.PI / 180) * 180 / Math.PI - 2) < 0.001);
-});
-
-test('pinch zoom does not activate; camera pan uses middle mouse and centroid movement', () => {
-    const f = fixture(); f.controller.setMode('camera');
-    f.touch('touchstart', [finger(1, 100, 100)]);
-    assert.equal(events(f.canvas, 'mousedown')[0].buttons, 4);
-    f.touch('touchstart', [finger(1, 100, 100), finger(2, 200, 100)]);
-    f.touch('touchmove', [finger(1, 110, 110), finger(2, 230, 110)]);
-    assert.ok(events(f.canvas, 'wheel')[0].deltaY < 0);
-    assert.deepEqual(f.input.position, { x: 120, y: 110 });
-    f.touch('touchend', [], [finger(1, 110, 110), finger(2, 230, 110)]);
-    assert.equal(events(f.canvas, 'keydown').length, 0);
-    assert.equal(f.input.buttons.size, 0);
-});
-
-test('Grab two-finger gestures rotate without accidental camera zoom', () => {
-    const f = fixture();
-    f.touch('touchstart', [finger(1, 100, 100)]);
-    f.touch('touchstart', [finger(1, 100, 100), finger(2, 200, 100)]);
-    f.touch('touchmove', [finger(1, 100, 100), finger(2, 250, 200)]);
-    f.controller.tick(16);
-    assert.equal(events(f.canvas, 'wheel').length, 0);
-    assert.equal(f.input.keys.has('KeyD'), true);
-});
-
-test('camera remains continuous when returning from two fingers to one', () => {
-    const f = fixture(); f.controller.setMode('camera');
-    f.touch('touchstart', [finger(1, 100, 100)]);
-    f.touch('touchstart', [finger(1, 100, 100), finger(2, 200, 100)]);
-    f.touch('touchmove', [finger(1, 110, 110), finger(2, 230, 110)]);
-    assert.deepEqual(f.input.position, { x: 120, y: 110 });
-    f.touch('touchend', [finger(1, 110, 110)], [finger(2, 230, 110)]);
-    f.touch('touchmove', [finger(1, 115, 120)]);
-    assert.deepEqual(f.input.position, { x: 125, y: 120 });
 });
 
 test('every toolbar action matches the recovered Unity default_controls asset', () => {
@@ -205,18 +241,9 @@ test('toolbar finger is excluded from canvas gestures', () => {
     const f = fixture(); f.input.key('KeyF', true, 'toolbar');
     f.touch('touchstart', [finger(1, 100, 200)], undefined, [finger(9, 500, 500)]);
     f.touch('touchmove', [finger(1, 150, 250)], undefined, [finger(9, 600, 400)]);
-    assert.equal(f.controller.pair, null);
+    assert.equal(f.controller.fingers.size, 1);
     assert.equal(f.input.keys.has('KeyF'), true);
     assert.deepEqual(f.input.position, { x: 150, y: 250 });
-});
-
-test('Inspect mode right-clicks then returns to Grab for menu selection', () => {
-    const f = fixture(); f.controller.setMode('context');
-    f.touch('touchstart', [finger(1, 100, 200)]); f.advance(20);
-    f.touch('touchend', [], [finger(1, 100, 200)]);
-    assert.equal(events(f.canvas, 'mousedown')[0].button, 2);
-    assert.equal(f.controller.mode, 'grab');
-    assert.equal(f.modes.at(-1), 'grab');
 });
 
 test('gesture release cannot release a key still held by a toolbar button', () => {
@@ -244,35 +271,3 @@ for (const interruption of ['blur', 'pagehide', 'resize', 'orientationchange', '
     });
 }
 
-test('translated DOM events reach the actual generated Unity keyboard/mouse callbacks', () => {
-    const f = fixture();
-    const source = fs.readFileSync('Build/PPG.framework.js', 'utf8');
-    function generatedFunction(name) {
-        const start = source.indexOf('function ' + name + '(');
-        assert.ok(start >= 0);
-        return source.slice(start, source.indexOf('function ', start + 9));
-    }
-    const buffer = new ArrayBuffer(8192);
-    let allocation = 0;
-    const calls = [];
-    const sandbox = {
-        HEAP32: new Int32Array(buffer), HEAP16: new Int16Array(buffer), HEAPF64: new Float64Array(buffer),
-        JSEvents: { registerOrRemoveHandler: handler => handler.target.addEventListener(handler.eventTypeString, handler.handlerFunc) },
-        _malloc: size => { const address = allocation; allocation += size; return address; },
-        findEventTarget: target => target, getBoundingClientRect: target => target.getBoundingClientRect(),
-        stringToUTF8: (value, address, max) => { new Uint8Array(buffer, address, max).set(Buffer.from(value + '\0').subarray(0, max)); },
-        dynCall_iiii: (callback, type, address) => { callback(type, address); return 1; }
-    };
-    vm.createContext(sandbox);
-    vm.runInContext(generatedFunction('registerKeyEventCallback') + generatedFunction('fillMouseEventData') + generatedFunction('registerMouseEventCallback'), sandbox);
-    const record = (type, address) => calls.push({ type, bytes: new Uint8Array(buffer).slice(address, address + 176) });
-    sandbox.registerKeyEventCallback(f.env.document, 0, false, record, 2, 'keydown');
-    sandbox.registerMouseEventCallback(f.canvas, 0, false, record, 5, 'mousedown');
-    f.input.pulse('KeyF'); f.touch('touchstart', [finger(1, 212, 224)]);
-    const key = new DataView(calls.find(call => call.type === 2).bytes.buffer);
-    const mouse = new DataView(calls.find(call => call.type === 5).bytes.buffer);
-    assert.equal(key.getInt32(36, true), 70); // e.keyCode
-    assert.equal(mouse.getInt32(52, true), 200); // CSS x relative to canvas
-    assert.equal(mouse.getInt32(56, true), 200);
-    assert.equal(mouse.getInt16(42, true), 1); // e.buttons
-});

@@ -32,10 +32,7 @@
         <div id="gesture-status" role="status" aria-live="polite"></div>
         <div id="mobile-controls" hidden>
             <nav id="mode-bar" aria-label="Touch interaction">
-                <button type="button" data-mode="grab" aria-pressed="true">Grab</button>
-                <button type="button" data-mode="activate" aria-pressed="false">Activate</button>
-                <button type="button" data-mode="camera" aria-pressed="false">Camera</button>
-                <button type="button" data-mode="context" aria-pressed="false">Inspect</button>
+                <span class="mode-hint">Drag · pinch zoom · twist rotate</span>
                 <button type="button" id="controls-help" aria-label="Controls and settings">?</button>
                 <button type="button" id="toggle-controls" aria-label="Collapse touch controls" aria-expanded="true">−</button>
             </nav>
@@ -46,7 +43,9 @@
                     <button type="button" data-facing="left" aria-pressed="true" aria-label="Spawn facing left">←</button>
                     <button type="button" data-facing="right" aria-pressed="false" aria-label="Spawn facing right">→</button>
                 </div>
+                <span id="facing-label" aria-live="polite">Facing ←</span>
                 <button type="button" data-spawn>Spawn</button>
+                <button type="button" data-place>Place</button>
                 <button type="button" data-hold="activateDirect">Use / fire</button>
                 <button type="button" data-hold="left" aria-label="Hold to rotate counterclockwise">↶</button>
                 <button type="button" data-hold="right" aria-label="Hold to rotate clockwise">↷</button>
@@ -81,15 +80,13 @@
             <div class="help-card">
                 <h2 id="help-title">Made for touch</h2>
                 <dl>
-                    <dt>Grab</dt><dd>Drag with one finger to pick up objects, use tools, and click game menus. Double-tap an object to activate it.</dd>
-                    <dt>Two-finger rotation</dt><dd>In Grab, keep your first finger on the object and twist a second finger around it. This drives the game's A / D rotation; use ↶ / ↷ for fine control.</dd>
-                    <dt>Activate</dt><dd>Tap an object to send F without grabbing. Hold Use / fire to keep activating while your other finger aims or drags.</dd>
-                    <dt>Camera</dt><dd>Drag to pan. Pinch with two fingers to zoom and move them together to pan. Grab reserves two fingers for rotation so a twist never accidentally zooms.</dd>
-                    <dt>Inspect</dt><dd>Tap for the object's right-click menu, then return to Grab to choose an entry. In Grab, a stationary long-press also opens this menu. Freeze and other object actions live there.</dd>
-                    <dt>Items & tools</dt><dd>Tap Items, choose the spawn facing (← or → is outlined when active), then Spawn at the last touched position. Latch Shift for faster rotation / multiselect, or Alt for snapping. More includes Copy, Paste, Details, Thermal, and tools 1–9. Tools / powers sends Left Ctrl.</dd>
+                    <dt>Drag</dt><dd>One finger drags: it picks up and moves objects, and clicks game menus. A quick tap is a click; a still long press opens the object menu.</dd>
+                    <dt>Zoom</dt><dd>Put two fingers down together, in either order, then pinch to zoom.</dd>
+                    <dt>Rotate</dt><dd>Keep the left finger still on an object, then move the right finger up (rotate left) or down (rotate right).</dd>
+                    <dt>Activate / fire</dt><dd>While one finger drags an object, touch with another finger to hold F (activate) until that finger lifts.</dd>
+                    <dt>Spawn & place</dt><dd>Pick the facing (← or → shows the current choice), tap Spawn, then Place to put the object at the last touched spot. Shift and Alt are latched in More.</dd>
                 </dl>
                 <label class="setting"><input id="touch-enabled" type="checkbox"> Show touch controls (also works with a mouse)</label>
-                <label class="setting"><input id="double-tap" type="checkbox" checked> Double-tap to activate in Grab</label>
                 <label class="setting">Rotation speed <input id="rotation-speed" type="range" min="45" max="720" step="15" value="180"> <output id="rotation-value">180°/s</output></label>
                 <p class="fine-print">Twisting emulates rotation keys, not a direct object-angle API. Match this speed to the game's rotation rate if it feels too fast or slow. Shortcuts assume the game's default bindings; custom bindings must be restored in game. No Unity project source is included.</p>
                 <p id="display-hint" class="fine-print">On iPhone, use Safari → Share → Add to Home Screen for a larger display. Fullscreen is not available on every iOS version. Use the game's Settings for volume and graphics.</p>

@@ -27,7 +27,11 @@ After these changes are on `main`, open **johnesecat/people-playground → Setti
 
 ## Touch controls
 
-- **Grab:** one-finger mouse click / drag. Double-tap to send **F** (optional in help).
+- **Drag:** one finger drags (click, or drag to move the view or an object). Hold still for about 0.65 s to open the object menu.
+- **Zoom:** put two fingers down together (either finger first) and pinch.
+- **Rotate:** keep the left finger down, then move the right finger up (rotate left, A) or down (rotate right, D).
+- **Activate / fire:** while dragging an object, touch with a second finger to hold F until it lifts. A quick second-finger tap sends one F.
+- **Spawn:** the facing toggle sets which way the object spawns (Q = left, E = right); Spawn adds the object and Place drops it.
 - **Rotate:** keep the first finger on the held object and twist a second around it. This translates angle changes into **A / D** key durations, not a direct Unity angle setter. Adjust the rotation speed under **?** to match the game; hold **↶ / ↷** for fine control.
 - **Activate:** tap an object to send **F** without grabbing it. Hold **Use / fire** while dragging or aiming with another finger.
 - **Camera:** one-finger middle-mouse pan; two-finger centroid pan and pinch zoom. Grab reserves two fingers for rotation, avoiding accidental zoom during a twist.
@@ -117,4 +121,4 @@ The cloud environment has no browser automation or attached iOS device. These ch
 4. Rotate portrait/landscape, hide/show Safari's bars, background and return, interrupt a gesture, and test Add to Home Screen. Verify safe-area placement and touch targets at your device size.
 5. Repeat on the published GitHub Pages URL with network/console inspection. Confirm all nine parts load locally and no runtime dependency fails.
 
-**Compatibility limit:** the nine split assets total ~164 MB; the WASM declares a **512 MiB initial heap** and a **2 GiB maximum**. The wrapper caps touch-device rendering DPR to 1 and avoids an extra giant joined ArrayBuffer, but cannot reduce the game's compiled memory requirements or physics cost. WebGL 2 and substantial free device memory are necessary. Safari can terminate a large tab without a recoverable JavaScript error. Therefore universal iOS compatibility, 100% feature parity, and sustained performance are not guaranteed by these wrapper changes; a smaller/mobile-targeted Unity rebuild would require the original project.
+**Compatibility limit:** the nine split assets total ~164 MB; the WASM declares a **512 MiB initial heap** and a **2 GiB maximum**. The wrapper avoids an extra giant joined ArrayBuffer and uses Unity's default pixel ratio, but cannot reduce the game's compiled memory requirements or physics cost. WebGL 2 and substantial free device memory are necessary. Safari can terminate a large tab without a recoverable JavaScript error. Therefore universal iOS compatibility, 100% feature parity, and sustained performance are not guaranteed by these wrapper changes; a smaller/mobile-targeted Unity rebuild would require the original project.

@@ -26,11 +26,12 @@
     function angleDelta(previous, next) {
         return Math.atan2(Math.sin(next - previous), Math.cos(next - previous));
     }
+    // Takes tracked finger records ({ x, y }), the same shape the controller stores.
     function pairGeometry(a, b) {
         return {
-            x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2,
-            distance: Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY),
-            angle: Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX)
+            x: (a.x + b.x) / 2, y: (a.y + b.y) / 2,
+            distance: Math.hypot(b.x - a.x, b.y - a.y),
+            angle: Math.atan2(b.y - a.y, b.x - a.x)
         };
     }
 
@@ -111,6 +112,17 @@
         }
     }
 
+    /*
+     * Gesture model (finger roles are assigned on touchstart, from the live canvas size):
+     *  - One finger: drag = left-button drag (the game decides what the finger grabs). A
+     *    stationary tap is a click; a stationary long press opens the right-click menu.
+     *  - Two fingers down together (within 150 ms): pinch = mouse wheel zoom.
+     *  - Left finger held still, then right finger moves up/down: rotate (up = A, down = D).
+     *  - Left finger dragging an object, then another finger touches: hold F (activate / fire)
+     *    until that finger lifts.
+     * The second finger's role is 'left' if it lands left of the first finger, else 'right',
+     * so identity is correct even when both fingers are in the same half of the screen.
+     */
     class TouchController {
         constructor(canvas, options = {}) {
             this.canvas = canvas;
@@ -118,21 +130,22 @@
             this.input = options.input || new UnityInput(canvas, this.env);
             this.status = options.status || (() => {});
             this.cursor = options.cursor || (() => {});
-            this.onMode = options.onMode || (() => {});
             this.enabled = true;
-            this.mode = 'grab';
-            this.doubleTap = true;
             this.rotationSpeed = 180;
+            this.fingers = new Map();
             this.primaryId = null;
-            this.secondaryId = null;
-            this.primary = null;
-            this.pair = null;
+            this.mode = 'idle';
+            this.zoomDistance = 0;
+            this.pendingSince = 0;
             this.rotationMs = 0;
             this.rotationKey = null;
+            this.fireHeld = false;
             this.longTimer = null;
-            this.lastTap = null;
-            this.listeners = [];
+            this.contextTimer = null;
+            this.placeTimer = null;
+            this.lastTouch = { ...this.input.position };
             this.lastTouchTime = -Infinity;
+            this.listeners = [];
             for (const type of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) {
                 this.listen(canvas, type, event => this.handleTouch(event), { capture: true, passive: false });
             }
@@ -165,105 +178,216 @@
             this.listeners.push(() => target.removeEventListener(type, handler, options));
         }
         consume(event) { event.preventDefault(); event.stopImmediatePropagation(); }
-        setMode(mode) {
-            if (!['grab', 'activate', 'camera', 'context'].includes(mode)) return;
-            this.reset();
-            this.mode = mode;
-            this.status({ grab: 'Drag · twist to rotate · Camera to pan/zoom', activate: 'Tap an object to activate', camera: 'Drag to pan · pinch to zoom', context: 'Tap an object for its menu' }[mode]);
-            this.onMode(mode);
-        }
         clearLongPress() {
             if (this.longTimer !== null) this.env.clearTimeout(this.longTimer);
             this.longTimer = null;
         }
-        findTouch(list, id) { return Array.from(list).find(touch => touch.identifier === id); }
+        // The canvas split is measured from the live canvas, so it follows the screen size.
+        midpoint() {
+            const rect = this.canvas.getBoundingClientRect();
+            return rect.left + rect.width / 2;
+        }
+        addFinger(touch, now) {
+            const others = [...this.fingers.values()];
+            // Only two fingers take part in gestures; a third is ignored until one lifts.
+            if (others.length >= 2) return;
+            const role = others.length === 0
+                ? (touch.clientX < this.midpoint() ? 'left' : 'right')
+                : (touch.clientX < others[0].x ? 'left' : 'right');
+            const finger = {
+                id: touch.identifier, role, x: touch.clientX, y: touch.clientY, dy: 0,
+                startX: touch.clientX, startY: touch.clientY, time: now, moved: false
+            };
+            this.fingers.set(finger.id, finger);
+            this.lastTouch = { x: finger.x, y: finger.y };
+            this.cursor(finger.x, finger.y, true);
+            if (others.length === 0) {
+                this.primaryId = finger.id;
+                this.mode = 'drag';
+                this.input.focus();
+                this.input.mouse('mousemove', finger.x, finger.y);
+                this.input.mouse('mousedown', finger.x, finger.y, 0);
+                this.clearLongPress();
+                this.longTimer = this.env.setTimeout(() => {
+                    this.longTimer = null;
+                    if (this.mode !== 'drag' || this.fingers.size !== 1 || finger.moved) return;
+                    this.input.releaseMouse();
+                    this.contextClick(finger.x, finger.y);
+                }, 650);
+                this.status('Drag to move · pinch to zoom · twist to rotate');
+            } else if (others.length === 1) {
+                this.clearLongPress();
+                const other = others[0];
+                if (now - other.time < 150) this.startZoom();
+                else if (this.mode === 'drag' && other.moved) this.startFire();
+                else if (this.mode === 'drag') this.startPending(now);
+            }
+        }
+        startZoom() {
+            this.mode = 'zoom';
+            this.input.releaseMouse();
+            const [a, b] = [...this.fingers.values()];
+            this.zoomDistance = pairGeometry(a, b).distance;
+            this.status('Pinch to zoom');
+        }
+        startFire() {
+            this.mode = 'fire';
+            this.fireHeld = true;
+            this.input.key('KeyF', true, 'gesture-fire');
+            this.status('Activating while you hold the object');
+        }
+        // Second finger down on a still object: moving it rotates, holding it still activates.
+        startPending(now) {
+            this.mode = 'pending';
+            this.pendingSince = now;
+            this.status('Move the right finger up or down to rotate, or hold it still to activate');
+        }
+        startRotate() {
+            this.mode = 'rotate';
+            this.status('Move the right finger up or down to rotate');
+        }
+        // The rotating finger is the one further right, so the left finger stays the anchor.
+        rotator() {
+            return [...this.fingers.values()].reduce((best, finger) => (!best || finger.x > best.x ? finger : best), null);
+        }
+        updateFinger(finger, touch) {
+            finger.dy = touch.clientY - finger.y;
+            finger.x = touch.clientX;
+            finger.y = touch.clientY;
+            if (!finger.moved && Math.hypot(finger.x - finger.startX, finger.y - finger.startY) > 10) {
+                finger.moved = true;
+                this.clearLongPress();
+            }
+            if (finger.id === this.primaryId) {
+                this.lastTouch = { x: finger.x, y: finger.y };
+                this.cursor(finger.x, finger.y, true);
+            }
+        }
+        applyMove() {
+            const primary = this.fingers.get(this.primaryId);
+            const secondary = [...this.fingers.values()].find(finger => finger.id !== this.primaryId);
+            if (this.mode === 'pending') {
+                if (secondary && secondary.moved) this.startRotate();
+                else if (primary && primary.moved) this.startFire();
+            }
+            if (this.mode !== 'zoom' && primary) {
+                this.input.mouse('mousemove', primary.x, primary.y);
+            }
+            const list = [...this.fingers.values()];
+            if (this.mode === 'zoom' && list.length === 2) {
+                const geometry = pairGeometry(list[0], list[1]);
+                if (this.zoomDistance > 10 && geometry.distance > 10) {
+                    const delta = Math.max(-300, Math.min(300, -Math.log(geometry.distance / this.zoomDistance) * 600));
+                    if (Math.abs(delta) > 0.2) this.input.wheel(delta, geometry.x, geometry.y);
+                }
+                this.zoomDistance = geometry.distance;
+            }
+            if (this.mode === 'rotate') {
+                const rotator = this.rotator();
+                if (rotator && rotator.dy) {
+                    // Vertical movement is converted at 1 px = 1 degree, then the rotation speed sets the pace.
+                    this.rotationMs = Math.max(-1000, Math.min(1000, this.rotationMs + rotator.dy / this.rotationSpeed * 1000));
+                }
+            }
+            for (const finger of list) finger.dy = 0;
+        }
         handleTouch(event) {
             if (!this.enabled) return;
             this.consume(event);
-            this.lastTouchTime = this.env.performance.now();
-            // targetTouches excludes fingers holding toolbar buttons (Use / rotate).
-            const touches = Array.from(event.targetTouches);
+            const now = this.env.performance.now();
+            this.lastTouchTime = now;
             if (event.type === 'touchcancel') { this.reset(); return; }
-            if (event.type === 'touchstart' && this.primaryId === null && touches.length) {
-                const first = touches[0];
-                this.input.focus();
-                this.primaryId = first.identifier;
-                this.primary = { x: first.clientX, y: first.clientY, time: this.lastTouchTime, moved: false, multi: false, context: false, lastX: first.clientX, lastY: first.clientY };
-                this.moveCursor(first);
-                this.input.mouse('mousemove', first.clientX, first.clientY);
-                if (this.mode === 'grab' || this.mode === 'camera') this.input.mouse('mousedown', first.clientX, first.clientY, this.mode === 'camera' ? 1 : 0);
-                if (this.mode === 'grab') {
-                    this.longTimer = this.env.setTimeout(() => {
-                        this.longTimer = null;
-                        if (!this.primary || this.primary.moved || this.primary.multi) return;
-                        this.input.releaseMouse();
-                        this.contextClick(first);
-                        this.primary.context = true;
-                    }, 650);
+            // targetTouches excludes fingers holding toolbar buttons (Use / rotate).
+            const live = new Map(Array.from(event.targetTouches).map(touch => [touch.identifier, touch]));
+            const changed = new Map(Array.from(event.changedTouches).map(touch => [touch.identifier, touch]));
+            if (event.type === 'touchstart') {
+                for (const touch of event.changedTouches) {
+                    if (live.has(touch.identifier) && !this.fingers.has(touch.identifier)) this.addFinger(touch, now);
                 }
             }
-            const primary = this.findTouch(touches, this.primaryId);
-            if (!primary) {
-                if (this.primary) this.finishPrimary(event);
+            for (const finger of this.fingers.values()) {
+                const touch = live.get(finger.id);
+                if (touch) this.updateFinger(finger, touch);
+            }
+            if (event.type === 'touchmove') this.applyMove();
+            for (const id of [...this.fingers.keys()]) {
+                if (live.has(id)) continue;
+                const touch = changed.get(id);
+                if (touch) this.updateFinger(this.fingers.get(id), touch);
+                this.removeFinger(id);
+            }
+        }
+        removeFinger(id) {
+            const wasPrimary = id === this.primaryId;
+            // A quick second-finger tap (no movement, no hold) sends one activate pulse.
+            const tapped = this.mode === 'pending' && !wasPrimary;
+            this.fingers.delete(id);
+            this.stopRotation();
+            this.stopFire();
+            if (tapped) this.input.pulse('KeyF');
+            this.zoomDistance = 0;
+            if (this.fingers.size === 0) {
+                this.clearLongPress();
+                this.input.releaseMouse();
+                this.mode = 'idle';
+                this.primaryId = null;
+                this.cursor(0, 0, false);
+                this.status('Drag · pinch to zoom · tap ? for controls');
                 return;
             }
-            this.moveCursor(primary);
-            if (Math.hypot(primary.clientX - this.primary.x, primary.clientY - this.primary.y) > 10) {
-                this.primary.moved = true;
-                this.clearLongPress();
+            // Only one finger is left. If it is still holding the object, keep the drag going;
+            // otherwise it takes over the drag from its current position.
+            if (!wasPrimary && this.input.buttons.has(0)) {
+                this.mode = 'drag';
+                return;
             }
-            const secondary = this.findTouch(touches, this.secondaryId) || touches.find(touch => touch.identifier !== this.primaryId);
-            if (secondary) {
-                this.clearLongPress();
-                this.primary.multi = true;
-                const geometry = pairGeometry(primary, secondary);
-                if (!this.pair || this.secondaryId !== secondary.identifier) {
-                    this.pair = geometry;
-                    this.secondaryId = secondary.identifier;
-                } else if (event.type === 'touchmove') {
-                    this.updatePair(primary, geometry);
-                    this.pair = geometry;
-                }
-            } else {
-                this.pair = null;
-                this.secondaryId = null;
-                this.stopRotation();
-                if (event.type === 'touchmove' && !this.primary.context) {
-                    if (this.mode === 'camera') {
-                        this.input.mouse('mousemove', this.input.position.x + primary.clientX - this.primary.lastX, this.input.position.y + primary.clientY - this.primary.lastY);
-                    } else this.input.mouse('mousemove', primary.clientX, primary.clientY);
-                }
-            }
-            this.primary.lastX = primary.clientX;
-            this.primary.lastY = primary.clientY;
+            const next = [...this.fingers.values()][0];
+            this.input.releaseMouse();
+            this.clearLongPress();
+            this.primaryId = next.id;
+            this.mode = 'drag';
+            next.moved = true; // A takeover must not also start a long-press menu.
+            this.input.mouse('mousemove', next.x, next.y);
+            this.input.mouse('mousedown', next.x, next.y, 0);
         }
-        moveCursor(touch) { this.cursor(touch.clientX, touch.clientY, true); }
-        updatePair(primary, geometry) {
-            const old = this.pair;
-            // Keep camera zoom separate from object rotation. An imperfect twist
-            // must not unexpectedly zoom the scene underneath a held object.
-            if (this.mode === 'camera' && old.distance > 10 && geometry.distance > 10) {
-                const zoom = -Math.log(geometry.distance / old.distance) * 600;
-                if (Math.abs(zoom) > 0.2) {
-                    const position = this.mode === 'camera' ? this.input.position : { x: primary.clientX, y: primary.clientY };
-                    this.input.wheel(Math.max(-120, Math.min(120, zoom)), position.x, position.y);
-                }
-            }
-            if (this.mode === 'camera') {
-                this.input.mouse('mousemove', this.input.position.x + geometry.x - old.x, this.input.position.y + geometry.y - old.y);
-            } else if (this.mode === 'grab' && !this.primary.context) {
-                this.input.mouse('mousemove', primary.clientX, primary.clientY);
-                // A/D are continuous rotation inputs, not an angle setter. Convert
-                // finger angle to a bounded duration at the user-calibrated rate.
-                const degrees = angleDelta(old.angle, geometry.angle) * 180 / Math.PI;
-                this.rotationMs = Math.max(-1000, Math.min(1000, this.rotationMs + degrees / this.rotationSpeed * 1000));
-            }
+        contextClick(x, y) {
+            this.input.mouse('mousemove', x, y);
+            this.input.mouse('mousedown', x, y, 2);
+            if (this.contextTimer !== null) this.env.clearTimeout(this.contextTimer);
+            this.contextTimer = this.env.setTimeout(() => {
+                this.contextTimer = null;
+                this.input.mouse('mouseup', undefined, undefined, 2);
+            }, 80);
+            this.status('Object menu open · tap an entry');
+        }
+        // Place: click the last touched spot, which places a held object there.
+        place() {
+            const { x, y } = this.lastTouch;
+            this.input.focus();
+            this.input.mouse('mousemove', x, y);
+            this.input.mouse('mousedown', x, y, 0);
+            if (this.placeTimer !== null) this.env.clearTimeout(this.placeTimer);
+            this.placeTimer = this.env.setTimeout(() => {
+                this.placeTimer = null;
+                this.input.mouse('mouseup', undefined, undefined, 0);
+            }, 80);
+        }
+        stopRotation() {
+            this.rotationMs = 0;
+            if (this.rotationKey) this.input.key(this.rotationKey, false, 'gesture');
+            this.rotationKey = null;
+        }
+        stopFire() {
+            if (this.fireHeld) this.input.key('KeyF', false, 'gesture-fire');
+            this.fireHeld = false;
         }
         tick(milliseconds) {
+            if (this.mode === 'pending' && this.env.performance.now() - this.pendingSince >= 200) this.startFire();
             let next = null;
-            if (this.pair && this.mode === 'grab' && Math.abs(this.rotationMs) > 2) {
-                next = this.rotationMs > 0 ? 'KeyD' : 'KeyA';
-                this.rotationMs -= Math.sign(this.rotationMs) * Math.min(Math.abs(this.rotationMs), milliseconds);
+            if (this.mode === 'rotate' && Math.abs(this.rotationMs) > 2) {
+                next = this.rotationMs > 0 ? ACTION_KEYS.right : ACTION_KEYS.left;
+                const step = Math.min(Math.abs(this.rotationMs), milliseconds);
+                this.rotationMs -= Math.sign(this.rotationMs) * step;
             }
             if (next !== this.rotationKey) {
                 if (this.rotationKey) this.input.key(this.rotationKey, false, 'gesture');
@@ -271,56 +395,19 @@
                 this.rotationKey = next;
             }
         }
-        stopRotation() {
-            if (this.rotationKey) this.input.key(this.rotationKey, false, 'gesture');
-            this.rotationKey = null;
-            this.rotationMs = 0;
-        }
-        contextClick(touch) {
-            this.input.mouse('mousemove', touch.clientX, touch.clientY);
-            this.input.mouse('mousedown', touch.clientX, touch.clientY, 2);
-            // Same duration guarantee as keyboard pulses; Unity polls once per frame.
-            this.contextTimer = this.env.setTimeout(() => {
-                this.input.mouse('mouseup', undefined, undefined, 2);
-                this.contextTimer = null;
-            }, 80);
-            this.status('Object menu · tap an entry with Grab');
-        }
-        finishPrimary(event) {
-            this.clearLongPress();
-            const ended = this.findTouch(event.changedTouches, this.primaryId);
-            const tap = ended && !this.primary.moved && !this.primary.multi && !this.primary.context && this.lastTouchTime - this.primary.time < 500;
-            this.input.releaseMouse();
-            this.stopRotation();
-            if (tap) {
-                this.input.mouse('mousemove', ended.clientX, ended.clientY);
-                if (this.mode === 'activate') this.input.pulse('KeyF');
-                else if (this.mode === 'context') {
-                    this.contextClick(ended);
-                    this.mode = 'grab';
-                    this.onMode('grab');
-                } else if (this.mode === 'grab' && this.doubleTap) {
-                    if (this.lastTap && this.lastTouchTime - this.lastTap.time < 320 && Math.hypot(ended.clientX - this.lastTap.x, ended.clientY - this.lastTap.y) < 28) {
-                        this.input.pulse('KeyF');
-                        this.lastTap = null;
-                    } else this.lastTap = { x: ended.clientX, y: ended.clientY, time: this.lastTouchTime };
-                }
-            } else this.lastTap = null;
-            this.primaryId = null;
-            this.secondaryId = null;
-            this.primary = null;
-            this.pair = null;
-            // If the anchor finger lifts, release everything. Do not silently grab
-            // with the other finger; a fresh touch starts a new gesture.
-        }
         reset() {
             this.clearLongPress();
-            if (this.contextTimer) this.env.clearTimeout(this.contextTimer);
+            if (this.contextTimer !== null) this.env.clearTimeout(this.contextTimer);
+            if (this.placeTimer !== null) this.env.clearTimeout(this.placeTimer);
             this.contextTimer = null;
+            this.placeTimer = null;
             this.stopRotation();
+            this.stopFire();
             this.input.reset();
-            this.primaryId = this.secondaryId = null;
-            this.primary = this.pair = this.lastTap = null;
+            this.fingers.clear();
+            this.primaryId = null;
+            this.mode = 'idle';
+            this.zoomDistance = 0;
             this.cursor(0, 0, false);
             if (this.onReset) this.onReset();
         }
@@ -343,8 +430,7 @@
                 const rect = canvas.getBoundingClientRect();
                 cursor.hidden = !visible;
                 cursor.style.left = (x - rect.left) + 'px'; cursor.style.top = (y - rect.top) + 'px';
-            },
-            onMode: mode => controls.querySelectorAll('[data-mode]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mode === mode)))
+            }
         });
         const enabled = document.querySelector('#touch-enabled');
         enabled.checked = navigator.maxTouchPoints > 0 || root.matchMedia('(pointer: coarse)').matches;
@@ -353,7 +439,7 @@
             controller.enabled = enabled.checked;
             controls.hidden = !enabled.checked;
             desktopToggle.hidden = enabled.checked;
-            status.textContent = enabled.checked ? 'Grab · tap ? for controls' : '';
+            status.textContent = enabled.checked ? 'Drag · pinch to zoom · tap ? for controls' : '';
         }
         // A mouse user can opt into controls too; no user-agent sniffing needed.
         const desktopToggle = document.createElement('button');
@@ -364,17 +450,20 @@
         desktopToggle.addEventListener('click', () => { enabled.checked = true; setEnabled(); });
         enabled.addEventListener('change', setEnabled);
         setEnabled();
-        controls.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => controller.setMode(button.dataset.mode)));
         controls.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', () => controller.input.pulse(ACTION_KEYS[button.dataset.action])));
         // One facing toggle decides which spawn key the Spawn button sends (Q = left, E = right).
         let facing = 'left';
         const facingButtons = controls.querySelectorAll('[data-facing]');
+        const facingLabel = document.querySelector('#facing-label');
         const setFacing = next => {
             facing = next;
             facingButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.facing === next)));
+            facingLabel.textContent = 'Facing ' + (next === 'left' ? '←' : '→');
         };
         facingButtons.forEach(button => button.addEventListener('click', () => setFacing(button.dataset.facing)));
+        setFacing(facing);
         controls.querySelector('[data-spawn]').addEventListener('click', () => controller.input.pulse(ACTION_KEYS[facing === 'left' ? 'spawnLeft' : 'spawnRight']));
+        controls.querySelector('[data-place]').addEventListener('click', () => controller.place());
         const held = new Map();
         controls.querySelectorAll('[data-hold]').forEach(button => {
             if (button.dataset.latch) {
@@ -444,7 +533,6 @@
                 }
             }
         });
-        document.querySelector('#double-tap').addEventListener('change', event => { controller.doubleTap = event.target.checked; });
         document.querySelector('#rotation-speed').addEventListener('input', event => {
             controller.rotationSpeed = Number(event.target.value);
             document.querySelector('#rotation-value').textContent = event.target.value + '°/s';

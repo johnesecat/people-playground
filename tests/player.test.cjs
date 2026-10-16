@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const { ASSETS, partPaths, mergeParts, pixelRatio, guardFullscreen } = require('../TemplateData/player.js');
+const { ASSETS, partPaths, mergeParts, guardFullscreen } = require('../TemplateData/player.js');
 
 test('split downloads merge in order and account for all bytes', async () => {
     const requested = [], counts = [];
@@ -29,14 +29,6 @@ test('network failures and cancellation reach the caller', async () => {
     await assert.rejects(mergeParts([{ path: 'offline', size: 1 }], async () => { throw new Error('offline'); }, () => {}), /offline/);
     const abort = new AbortController(); abort.abort();
     await assert.rejects(mergeParts([{ path: 'cancel', size: 1 }], async (name, options) => { options.signal.throwIfAborted(); }, () => {}, abort.signal), /abort/i);
-});
-
-test('touch devices render at 1x to stay within Safari memory; desktops are capped by a pixel budget', () => {
-    assert.equal(pixelRatio({ navigator: { maxTouchPoints: 5 }, devicePixelRatio: 3, innerWidth: 390, innerHeight: 844 }), 1);
-    assert.equal(pixelRatio({ navigator: { maxTouchPoints: 0 }, devicePixelRatio: 3 }), 2);
-    const large = pixelRatio({ navigator: { maxTouchPoints: 0 }, devicePixelRatio: 3, innerWidth: 2560, innerHeight: 1440 });
-    assert.ok(large >= 1 && large < 2, 'large screens shrink DPR to fit the budget');
-    assert.ok(2560 * 1440 * large * large <= 8000000 + 1);
 });
 
 test('synthetic fullscreen requests without user activation do not throw', async () => {
@@ -142,7 +134,7 @@ function shellFixture(options = {}) {
             initialization++;
             assert.equal(mounts, 1, 'touch interception is mounted before Unity initialization');
             assert.equal(config.frameworkUrl, 'Build/PPG.framework.js');
-            assert.equal(config.devicePixelRatio, 1);
+            assert.equal(config.devicePixelRatio, undefined, 'Unity default pixel ratio');
             progress(1);
             if (options.unityError) throw new Error('Unity allocation failed');
             if (options.bannerError) config.showBanner('runtime failed', 'error');
